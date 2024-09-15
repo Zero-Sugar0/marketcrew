@@ -1,0 +1,11 @@
+Flask
+requests
+python-dotenv
+gunicorn
+crewai
+crewai-tools
+langchain
+langchain_groq
+langchain_google_genai
+langchain_community
+duckduckgo-search

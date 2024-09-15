@@ -1,20 +1,24 @@
 import os
+from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from crewai import Agent, Task, Crew, Process
 from crewai_tools import SerperDevTool, ScrapeWebsiteTool
 from langchain_groq import ChatGroq
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.agents import Tool
 from langchain_community.tools import DuckDuckGoSearchRun
 
 app = Flask(__name__)
-
+load_dotenv()
 
 # Set up environment variables
-os.environ["GROQ_API_KEY"] = "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"
-os.environ["SERPER_API_KEY"] = "970222a7e4512bffc8bfde4705a744f9aec2b355"
+os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
+os.environ["SERPER_API_KEY"] = os.getenv("SERPER_API_KEY")
+os.environ["GOOGLE_API_KEY"] = os.getenv("GOOGLE_API_KEY")
 
 # Initialize language model
-llm = ChatGroq(temperature=0, model_name="mixtral-8x7b-32768")
+llmq = ChatGroq(temperature=0, model_name="mixtral-8x7b-32768")
+llmg = ChatGoogleGenerativeAI(temperature=1, model="gemini-1.5-flash")
 
 # Initialize search tool
 search_tool = DuckDuckGoSearchRun()
@@ -29,7 +33,7 @@ researcher = Agent(
     verbose=True,
     allow_delegation=False,
     tools=[search_tool],
-    llm=llm
+    llm=llmq
 )
 
 competitor_analyst = Agent(
@@ -39,7 +43,7 @@ competitor_analyst = Agent(
     verbose=True,
     allow_delegation=True,
     tools=[search_tool],
-    llm=llm
+    llm=llmq
 )
 
 content_writer = Agent(
@@ -49,7 +53,7 @@ content_writer = Agent(
     verbose=True,
     allow_delegation=True,
     tools=[serp_tool],
-    llm=llm
+    llm=llmg
 )
 
 # Define tasks
