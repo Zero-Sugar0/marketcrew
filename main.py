@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from crewai import Agent, Task, Crew, Process
 from crewai_tools import SerperDevTool, ScrapeWebsiteTool
 from langchain_groq import ChatGroq
@@ -104,6 +104,10 @@ def run_crewai():
         'competitorAnalysis': result[1],
         'blogPost': result[2]
     })
+
+@app.route('/agents')
+def agents():
+    return render_template('agents.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
