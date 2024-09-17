@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, render_template
+from flask_socketio import SocketIO
 from crewai import Agent, Task, Crew, Process
 from crewai_tools import SerperDevTool, ScrapeWebsiteTool
 from langchain_groq import ChatGroq
@@ -9,6 +10,7 @@ from langchain.agents import Tool
 from langchain_community.tools import DuckDuckGoSearchRun
 
 app = Flask(__name__)
+socketio = SocketIO(app, cors_allowed_origins="*")
 load_dotenv()
 
 # Set up environment variables
@@ -17,8 +19,20 @@ os.environ["SERPER_API_KEY"] = os.getenv("SERPER_API_KEY")
 os.environ["GOOGLE_API_KEY"] = os.getenv("GOOGLE_API_KEY")
 
 # Initialize language model
-llmq = ChatGroq(temperature=0, model_name="mixtral-8x7b-32768")
-llmg = ChatGoogleGenerativeAI(temperature=1, model="gemini-1.5-flash")
+llmq = ChatGroq(
+    model_name="mixtral-8x7b-32768",
+    max_tokens=32768,
+    top_p=1,
+    stream=True,
+    stop=None
+    )
+
+
+llmg = ChatGoogleGenerativeAI(temperature=1, 
+                              model="models/gemini-1.5-flash",
+                              top_k=64,
+                              top_p=1
+                              )
 
 # Initialize search tool
 search_tool = DuckDuckGoSearchRun()
@@ -33,7 +47,7 @@ researcher = Agent(
     verbose=True,
     allow_delegation=False,
     tools=[search_tool],
-    llm=llmq
+    llm=llmg
 )
 
 competitor_analyst = Agent(
@@ -52,7 +66,7 @@ content_writer = Agent(
     backstory="You're a master wordsmith with a knack for crafting compelling narratives. Your content has helped numerous brands establish thought leadership and engage their target audience effectively.",
     verbose=True,
     allow_delegation=True,
-    tools=[serp_tool],
+    tools=[search_tool],
     llm=llmg
 )
 
@@ -78,17 +92,25 @@ content_task = Task(
     output_file="blogpost.pdf"
 )
 
-app.route('/crewai', methods=['POST'])
-def run_crewai():
-    data = request.json
+@app.route('/')
+def home():
+    return render_template('index.html')
+    
+@app.route('/agents')
+def agents():
+    return render_template('agents.html')
+    
+    # Flask-SocketIO event to start the agents
+@socketio.on('start_agents')
+def start_agents(data):
     company_name = data['companyName']
     industry = data['industry']
     main_products = data['mainProducts']
 
-    # Update task descriptions with user input
-    research_task.description += f" Focus on the {industry} industry, particularly for companies offering {main_products}."
-    competitor_task.description = competitor_task.description.format(company_name=company_name, industry=industry, main_products=main_products)
-    content_task.description = content_task.description.format(company_name=company_name, industry=industry, main_products=main_products)
+    # Customize tasks based on user input
+    research_task.description += f" Focus on the {industry} industry and companies offering {main_products}."
+    competitor_task.description += f" Analyze competitors in the {industry} industry for {main_products}."
+
 
     # Execute the crew's tasks
     crew = Crew(
@@ -99,15 +121,18 @@ def run_crewai():
     )
     result = crew.kickoff()
 
-    return jsonify({
-        'research': result[0],
-        'competitorAnalysis': result[1],
-        'blogPost': result[2]
-    })
 
-@app.route('/agents')
-def agents():
-    return render_template('agents.html')
+    # Emit results back to the frontend
+    socketio.emit('researcher_output', "Starting research...")
+    # Run researcher task
+    socketio.emit('competitor_analyst_output', "Starting competitor analysis...")
+    # Run competitor analyst task
+    socketio.emit('content_writer_output', "Starting content writing...")
+    # Run content writer task
 
+    # After all tasks are complete
+    socketio.emit('agents_complete')
+
+# Run the app with Flask-SocketIO
 if __name__ == '__main__':
-    app.run(debug=True)
+    socketio.run(app, debug=True)

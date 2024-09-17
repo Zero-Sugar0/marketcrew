@@ -62,6 +62,15 @@ button:hover {
     background-color: #2c3840;
 }
 
+#current-agent {
+    margin-bottom: 1rem;
+    font-weight: bold;
+}
+
+#active-agent {
+    color: #35424a;
+}
+
 #agent-outputs {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
