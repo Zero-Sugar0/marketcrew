@@ -28,11 +28,12 @@ llmq = ChatGroq(
     )
 
 
-llmg = ChatGoogleGenerativeAI(temperature=1, 
-                              model="models/gemini-1.5-flash",
-                              top_k=64,
-                              top_p=1
-                              )
+llmg = ChatGoogleGenerativeAI(
+    temperature=1, 
+    model="models/gemini-1.5-flash",
+    top_k=64,
+    top_p=1
+    )
 
 # Initialize search tool
 search_tool = DuckDuckGoSearchRun()
@@ -82,7 +83,7 @@ competitor_task = Task(
     description="Analyze the top 3-5 competitors in the industry. Identify their strengths, weaknesses, and unique selling propositions. Also, assess our company's current performance and market position.",
     agent=competitor_analyst,
     expected_output="A comprehensive analysis of competitors' strengths and weaknesses, and our company's current market position.",
-    output_file="competitor.txt"
+    output_file="competitor.md"
 )
 
 content_task = Task(
