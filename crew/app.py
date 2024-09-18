@@ -30,7 +30,7 @@ llmq = ChatGroq(
 
 llmg = ChatGoogleGenerativeAI(
     temperature=1, 
-    model="models/gemini-1.5-flash",
+    model="gemini-1.5-flash",
     top_k=64,
     top_p=1
     )
